@@ -25,69 +25,64 @@
     <!-- ****************************************************** -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
-    <!-- ****************************************************** -->
-    <!--            PASO 2: SCRIPT DE DIAGNÓSTICO             -->
+   <!-- ****************************************************** -->
+    <!--            PASO 2: SCRIPT DE DIAGNÓSTICO (NUEVO)       -->
     <!-- ****************************************************** -->
     <script>
-        // Esta variable la usaremos para guardar la conexión
-        let supa;
+        // --- PASO 1: Tus credenciales ---
+        const SUPABASE_URL = 'https://rlnrvgtvshkthkzxrogk.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsbnJ2Z3R2c2hrdGhrenhyb2drIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI1NDY2NjksImV4cCI6MjA3ODEyMjY2OX0.AqoyTeRVSm5P1clJAn_OLOPJxuYW2HSRsB07KKKXXss';
 
-        // --- DIAGNÓSTICO DE CARGA ---
-        alert("DIAGNÓSTICO: La página HTML y este script se han cargado.");
-
-        if (window.supabase) {
-            alert("✅ ¡ÉXITO! La librería de Supabase (desde la URL de internet) se ha cargado correctamente.");
-        } else {
-            alert("❌ ¡FALLO CRÍTICO! La librería de Supabase NO se ha cargado. Revisa la URL del script o posibles bloqueadores en tu navegador.");
-        }
-
-        // --- DIAGNÓSTICO DE CONEXIÓN ---
+        // --- PASO 2: Crea el cliente de Supabase ---
+        let supaClient;
         try {
-            // **IMPORTANTE: PON AQUÍ TUS CREDENCIALES REALES**
-            const SUPABASE_URL = 'https://TU_URL_DE_SUPABASE.supabase.co';
-            const SUPABASE_ANON_KEY = 'TU_CLAVE_ANON_PUBLICA';
-
-            supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            // Usamos las constantes definidas arriba
+            supaClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            console.log("Cliente de Supabase parece haberse creado correctamente:", supaClient);
+            if (!supaClient) {
+                throw new Error("createClient devolvió un resultado nulo o indefinido.");
+            }
+        } catch (error) {
+            console.error("Error CRÍTICO al crear el cliente:", error);
+            alert(`❌ FALLO CRÍTICO al crear el cliente: ${error.message}`);
+        }
+        
+        // --- PASO 3: Configura el evento del formulario ---
+        const registerForm = document.getElementById('register-form');
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
             
-            if (supa) {
-                alert("✅ ¡ÉXITO! La conexión con tu proyecto de Supabase se ha creado correctamente (la variable 'supa' existe).");
-            } else {
-                throw new Error("La función createClient no devolvió un cliente válido.");
+            if (!supaClient) {
+                alert("Prueba abortada: El cliente de Supabase no está disponible.");
+                return;
             }
 
-        } catch (error) {
-            alert(`❌ ¡FALLO CRÍTICO! No se pudo crear la conexión con Supabase. Error: ${error.message}`);
-        }
+            console.log("Iniciando intento de registro...");
 
-        // --- DIAGNÓSTICO DE REGISTRO ---
-        const registerForm = document.getElementById('register-form');
-        if (registerForm) {
-            registerForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                alert("Iniciando prueba de registro...");
+            try {
+                const email = `testuser_${Date.now()}@test.com`;
+                const password = 'password123';
                 
-                if (!supa) {
-                    alert("No se puede registrar porque la conexión 'supa' no existe.");
-                    return;
+                console.log(`Intentando registrar con email: ${email}`);
+
+                const { data, error } = await supaClient.auth.signUp({ email, password });
+                
+                if (error) {
+                    // Si hay un error de Supabase, lo lanzamos para que lo capture el bloque catch
+                    throw error;
                 }
+                
+                console.log("Registro exitoso. Datos:", data);
+                alert(`✅ ¡REGISTRO EXITOSO! Usuario: ${data.user.email}`);
 
-                try {
-                    // Usamos un email y contraseña de prueba aleatorios
-                    const email = `testuser_${Date.now()}@test.com`;
-                    const password = 'password123';
-
-                    const { data, error } = await supa.auth.signUp({ email, password });
-                    if (error) throw error;
-                    
-                    alert(`✅ ¡REGISTRO EXITOSO! Se ha creado el usuario: ${data.user.email}. Revisa tu panel de Supabase en Authentication > Users.`);
-
-                } catch (error) {
-                    alert(`❌ FALLO EN EL REGISTRO: ${error.message}`);
-                }
-            });
-        }
-
+            } catch (error) {
+                // Este bloque capturará tanto errores de red como errores de Supabase
+                console.error("FALLO DETALLADO EN EL REGISTRO:", error);
+                alert(`❌ FALLO EN EL REGISTRO: ${error.message}. Revisa la consola (F12) para más detalles.`);
+            }
+        });
     </script>
 
 </body>
 </html>
+
