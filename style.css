@@ -1,0 +1,294 @@
+/* style.css */
+:root {
+    --primary-color: #007bff;
+    --primary-hover: #0056b3;
+    --secondary-color: #6c757d;
+    --background-color: #f8f9fa;
+    --card-bg-color: #ffffff;
+    --text-color: #212529;
+    --text-muted: #6c757d;
+    --error-color: #dc3545;
+    --success-color: #28a745;
+    --font-family: 'Poppins', sans-serif;
+    --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    --border-radius: 12px;
+}
+
+/* --- Base y Reset --- */
+body {
+    font-family: var(--font-family);
+    margin: 0;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    -webkit-font-smoothing: antialiased;
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+/* --- Loader --- */
+#loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    transition: opacity 0.3s;
+}
+#loading-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid rgba(0, 0, 0, 0.1);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* --- Formularios de Autenticación --- */
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 1rem;
+}
+.auth-card {
+    width: 100%;
+    max-width: 420px;
+    background-color: var(--card-bg-color);
+    border-radius: var(--border-radius);
+    padding: 2.5rem;
+    box-shadow: var(--card-shadow);
+    text-align: center;
+}
+.auth-card h2 {
+    margin-top: 0;
+    font-weight: 600;
+}
+.subtitle {
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+}
+.form-group {
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+.form-group input {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+}
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    background-color: var(--primary-color);
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    width: 100%;
+}
+.btn:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-2px);
+}
+.btn:disabled {
+    background-color: #adb5bd;
+    cursor: not-allowed;
+    transform: none;
+}
+.error-text {
+    color: var(--error-color);
+    margin-top: 1rem;
+    min-height: 1.2em;
+    font-size: 0.9rem;
+}
+.auth-switch {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+}
+.auth-switch a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+/* --- Layout de la App --- */
+.app-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+.navbar {
+    background-color: var(--card-bg-color);
+    color: var(--text-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 2rem;
+    height: 70px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    flex-shrink: 0;
+}
+.navbar .brand {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+.navbar div {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.navbar .btn { width: auto; padding: 0.5rem 0.8rem; }
+.content {
+    padding: 2rem;
+    flex-grow: 1;
+}
+
+/* --- Tarjetas (Cards) --- */
+.card {
+    background-color: var(--card-bg-color);
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 2rem;
+}
+.card h2 {
+    margin-top: 0;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+}
+.info-text {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+/* --- Estilos específicos de Fichar --- */
+.fichar-card {
+    text-align: center;
+}
+.fichar-header #current-time {
+    font-size: 3.5rem;
+    font-weight: 600;
+    margin: 0;
+    line-height: 1;
+}
+.fichar-header #current-date {
+    font-size: 1.2rem;
+    color: var(--text-muted);
+    margin: 0.5rem 0 1.5rem;
+}
+.fichar-status {
+    margin-bottom: 1.5rem;
+    padding: 0.8rem;
+    border-radius: 8px;
+    font-weight: 600;
+}
+.fichar-status.in-zone { background-color: rgba(40, 167, 69, 0.1); color: var(--success-color); }
+.fichar-status.out-zone { background-color: rgba(220, 53, 69, 0.1); color: var(--error-color); }
+.btn.btn-large {
+    padding: 1rem 2rem;
+    font-size: 1.2rem;
+    width: auto;
+    min-width: 200px;
+}
+.btn.fichar-entrada { background-color: var(--success-color); }
+.btn.fichar-salida { background-color: var(--error-color); }
+.btn.fichar-entrada:hover { background-color: #218838; }
+.btn.fichar-salida:hover { background-color: #c82333; }
+
+/* --- Tablas --- */
+.table-container {
+    overflow-x: auto;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+th, td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef;
+}
+thead th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+}
+
+/* --- Manager --- */
+.invite-form {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+.invite-form input {
+    flex-grow: 1;
+    padding: 0.8rem 1rem;
+    border: 1px solid #ced4da;
+    border-radius: 8px;
+}
+.invite-form button {
+    width: auto;
+    flex-shrink: 0;
+}
+#map {
+    height: 400px;
+    width: 100%;
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+}
+.map-controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+/* --- Media Queries para Responsividad --- */
+@media (max-width: 768px) {
+    .content { padding: 1rem; }
+    .navbar { padding: 0 1rem; }
+    .auth-card { padding: 1.5rem; }
+    .map-controls { flex-direction: column; align-items: stretch; }
+}

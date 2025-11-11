@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fichar - LTFichaje</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+</head>
+<body>
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+    <div class="app-container">
+        <nav class="navbar">
+            <span class="brand">LTFichaje</span>
+            <div>
+                <span id="user-email"></span>
+                <button id="logout-btn" class="btn btn-secondary"><i class="fa-solid fa-right-from-bracket"></i></button>
+            </div>
+        </nav>
+        <main class="content">
+            <div class="card fichar-card">
+                <div class="fichar-header">
+                    <h2 id="current-time">--:--:--</h2>
+                    <p id="current-date">Cargando fecha...</p>
+                </div>
+                <div class="fichar-status">
+                     <p id="geofence-status"><i class="fa-solid fa-location-crosshairs"></i> Verificando ubicación...</p>
+                </div>
+                <button id="fichar-btn" class="btn btn-large" disabled>
+                    <i class="fa-solid fa-fingerprint"></i> Espera...
+                </button>
+                <p id="status-message" class="info-text">Consultando tu estado actual...</p>
+            </div>
+
+            <div class="card">
+                <h2><i class="fa-solid fa-history"></i> Mi Historial Reciente</h2>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Entrada</th>
+                                <th>Salida</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historial-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="employee.js"></script>
+</body>
+</html>

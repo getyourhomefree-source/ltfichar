@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Gerente - LTFichaje</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <!-- Leaflet CSS for the map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+</head>
+<body>
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+    <div class="app-container">
+        <nav class="navbar">
+            <span class="brand">LTFichaje (Manager)</span>
+            <div>
+                <span id="user-email"></span>
+                <button id="logout-btn" class="btn btn-secondary"><i class="fa-solid fa-right-from-bracket"></i></button>
+            </div>
+        </nav>
+        <main class="content">
+            <!-- Zona de Geolocalización -->
+            <div class="card">
+                <h2><i class="fa-solid fa-map-location-dot"></i> Zona de Fichaje</h2>
+                <p class="info-text">Arrastra el marcador para establecer la ubicación de la empresa. Los empleados solo podrán fichar dentro del círculo azul.</p>
+                <div id="map"></div>
+                <div class="map-controls">
+                    <div class="form-group">
+                        <label for="radius">Radio de fichaje (en metros)</label>
+                        <input type="number" id="radius" value="100" min="10">
+                    </div>
+                    <button id="save-location-btn" class="btn">Guardar Ubicación</button>
+                </div>
+            </div>
+
+            <!-- Gestión de Empleados -->
+            <div class="card">
+                 <h2><i class="fa-solid fa-users"></i> Gestión de Empleados</h2>
+                 <form id="invite-form" class="invite-form">
+                     <input type="email" id="invite-email" placeholder="email@ejemplo.com" required>
+                     <button type="submit" class="btn">Invitar Empleado</button>
+                 </form>
+                 <div class="table-container">
+                     <table>
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Email</th>
+                                <th>Activo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="manager-table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Leaflet JS for the map -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="config.js"></script>
+    <script src="auth.js"></script> <!-- Para el logout -->
+    <script src="manager.js"></script>
+</body>
+</html>

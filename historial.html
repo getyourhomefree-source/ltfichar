@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fichar - LTFichaje</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <nav class="navbar">
+            <span class="brand">LTFichaje</span>
+            <div>
+                <span id="user-email"></span>
+                <button id="logout-btn" class="btn btn-secondary">Salir</button>
+            </div>
+        </nav>
+        <aside class="sidebar">
+            <a href="fichar.html" class="active">Fichar</a>
+            <a href="historial.html">Mi Historial</a>
+        </aside>
+        <main class="content">
+            <div class="card">
+                <h2>Registro de Jornada</h2>
+                <p id="status-message">Consultando tu estado actual...</p>
+                <div id="fichar-controls">
+                    <button id="fichar-btn" class="btn btn-large" disabled>Cargando...</button>
+                </div>
+                <p id="location-message" class="info-text"></p>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
