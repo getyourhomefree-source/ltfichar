@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crear Empresa - LTFichaje</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="loading-overlay" class="hidden">
+        <div class="spinner"></div>
+    </div>
+    <div class="auth-container">
+        <div class="auth-card">
+            <h2>Un último paso...</h2>
+            <p class="subtitle">Registra los datos de tu empresa para continuar</p>
+            <form id="create-company-form">
+                <div class="form-group">
+                    <label for="company-name">Nombre de la Empresa</label>
+                    <input type="text" id="company-name" required>
+                </div>
+                <button type="submit" class="btn">Guardar y Continuar</button>
+                <p id="error-message" class="error-text"></p>
+            </form>
+            <div class="auth-switch">
+                <button id="logout-btn" class="btn btn-secondary" style="width: auto; background-color: transparent; color: var(--text-muted); border: 1px solid #ccc; padding: 0.5rem 1rem;">Cerrar Sesión</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <!-- Necesitamos auth.js para el botón de logout -->
+    <script src="auth.js"></script> 
+    <script src="crear-empresa.js"></script>
+</body>
+</html>
