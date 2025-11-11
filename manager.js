@@ -1,79 +1,73 @@
-// manager.js
+// manager.js (VERSIÓN CORREGIDA Y COMPLETA)
 
 const loadingOverlay = document.getElementById('loading-overlay');
 let map, marker, circle;
-let companyData = {};
+let companyData = {}; // Usaremos esta variable global para almacenar los datos de la empresa.
 
+// --- INICIALIZACIÓN AL CARGAR LA PÁGINA ---
 document.addEventListener('DOMContentLoaded', async () => {
-    // La función checkUserSession está en auth.js, que ya está cargado en manager.html
-    // No es necesario duplicarla aquí si auth.js siempre se carga primero.
-    
-    // Cargamos los datos de la empresa. Esta función ahora es más robusta.
+    // Primero, cargamos los datos de la empresa del manager logueado.
     companyData = await loadCompanyData();
 
-    // Solo continuamos si hemos cargado los datos de la empresa correctamente.
+    // Si la carga de datos fue exitosa (es decir, el manager tiene una empresa registrada),
+    // entonces procedemos a cargar el resto de la página.
     if (companyData) {
         await loadEmployees();
         initializeMap();
         
-        // Asignación de eventos
+        // Asignamos los eventos a los botones y formularios
         document.getElementById('invite-form').addEventListener('submit', handleInvite);
         document.getElementById('save-location-btn').addEventListener('click', saveLocation);
         document.getElementById('radius').addEventListener('input', updateCircleRadius);
     }
 
+    // Ocultamos el overlay de carga al final de todo el proceso.
     hideLoading();
 });
 
+// --- FUNCIONES DE UTILIDAD ---
 function showLoading() { if (loadingOverlay) loadingOverlay.classList.remove('hidden'); }
 function hideLoading() { if (loadingOverlay) loadingOverlay.classList.add('hidden'); }
 
+
+// --- CARGA DE DATOS PRINCIPALES ---
 
 async function loadCompanyData() {
     showLoading();
     const { data: { user } } = await supa.auth.getUser();
     if (!user) {
-        // Si por alguna razón no hay usuario, lo enviamos al login.
         window.location.replace('index.html');
         return null;
     }
 
-    // ===================================================================
-    // --- CAMBIO CLAVE ---
-    // Buscamos la empresa por el 'id_manager' que corresponde al ID del usuario logueado.
-    // Esto es más seguro y coherente con el SQL que hemos definido.
-    // ===================================================================
+    // Buscamos la empresa usando el ID del manager (user.id), que es la forma correcta y segura.
     const { data: empresa, error } = await supa
         .from('empresas')
         .select('*')
-        .eq('id_manager', user.id) 
+        .eq('id_manager', user.id)
         .single();
         
     if (error) {
-        console.error("Error cargando datos de la empresa:", error.message);
-        
-        // Si el error es 'PGRST116', significa que la consulta no devolvió ninguna fila.
-        // Esto es normal para un manager nuevo. Lo redirigimos para que cree su empresa.
+        // Si el error es 'PGRST116', significa "no se encontró la fila", lo cual es normal
+        // para un manager nuevo. Lo redirigimos a la página de creación de empresa.
         if (error.code === 'PGRST116') {
-            console.log("Manager sin empresa detectado. Redirigiendo a crear-empresa.html");
-            alert("¡Bienvenido! Como es tu primera vez, vamos a registrar tu empresa.");
+            console.log("Manager sin empresa detectado. Redirigiendo...");
             window.location.replace('crear-empresa.html');
         } else {
-            // Para cualquier otro error, mostramos un mensaje genérico.
+            console.error("Error cargando datos de la empresa:", error);
             alert('Hubo un problema al cargar los datos de tu empresa.');
         }
-        return null; // Retornamos null para detener la ejecución de otras funciones.
+        return null; // Devolvemos null para detener la ejecución.
     }
     
     return empresa;
 }
 
 async function loadEmployees() {
-    // Nos aseguramos de tener un id de empresa antes de consultar.
     if (!companyData || !companyData.id) return;
 
-    // CORRECCIÓN: Tu tabla 'empleados' no tiene 'nombre' ni 'activo'. 
-    // Para mostrar los datos del empleado, necesitamos hacer un JOIN con la tabla 'perfiles'.
+    // Consultamos la tabla 'empleados' y hacemos un "JOIN" para obtener
+    // la información del perfil del empleado (nombre y rol).
     const { data: empleados, error } = await supa
         .from('empleados')
         .select(`
@@ -97,53 +91,97 @@ async function loadEmployees() {
         return;
     }
     
-    // Mostramos los datos obtenidos del JOIN.
+    // NOTA: El HTML estático pide "Nombre", "Email", "Activo".
+    // Nuestro SQL nos da "nombre_completo" y "rol". Adaptamos la tabla a los datos que tenemos.
+    // Para obtener el email, se requeriría una función RPC más compleja.
     empleados.forEach(emp => {
-        // Obtenemos el email del usuario de la tabla de autenticación (esto es una simplificación,
-        // en un caso real lo ideal sería tener el email también en perfiles).
-        // Por ahora, lo dejamos pendiente para no complicar la consulta.
         tableBody.innerHTML += `
             <tr>
-                <td>${emp.perfiles.nombre_completo || 'Nombre no asignado'}</td>
-                <td>email_del_empleado@ejemplo.com</td> <!-- Placeholder -->
-                <td>${emp.perfiles.rol}</td>
+                <td>${emp.perfiles.nombre_completo || 'Pendiente de registro'}</td>
+                <td>(Email no disponible en esta vista)</td>
+                <td>${emp.perfiles.rol || 'N/A'}</td>
             </tr>
         `;
     });
 }
 
 
+// --- LÓGICA DE GESTIÓN (INVITACIONES Y MAPA) ---
+
 async function handleInvite(e) {
     e.preventDefault();
     showLoading();
     const email = document.getElementById('invite-email').value;
 
+    if (!companyData || !companyData.id) {
+        alert("Error: No se ha podido identificar la empresa. Recarga la página.");
+        hideLoading();
+        return;
+    }
+
     try {
-        // En Supabase, las invitaciones se manejan directamente con la API de autenticación.
-        // No se necesita una Edge Function para esto.
-        const { data, error } = await supa.auth.inviteUserByEmail(email, {
-            data: {
-                id_empresa_a_unirse: companyData.id // Enviamos metadata extra en la invitación
-            }
+        // ===================================================================
+        // --- CORRECCIÓN CLAVE ---
+        // Llamamos a la Edge Function 'invite-user' que creamos en Supabase.
+        // Esta es la forma segura de realizar acciones de administrador.
+        // ===================================================================
+        const { data, error } = await supa.functions.invoke('invite-user', {
+            body: { 
+                email_a_invitar: email, 
+                id_de_la_empresa: companyData.id 
+            },
         });
 
         if (error) throw error;
         
-        alert(`Invitación enviada correctamente a ${email}.`);
+        // Mostramos el mensaje de éxito que nos devuelve nuestra función.
+        alert(data.message);
         document.getElementById('invite-email').value = '';
-        // NOTA: El empleado no aparecerá en la lista hasta que acepte la invitación y se cree la relación.
         
     } catch (error) {
-        alert("Error al invitar: " + error.message);
+        // Si la función devuelve un error (ej. permisos denegados), lo mostramos.
+        const errorMessage = error.context?.body?.error || error.message;
+        alert("Error al invitar: " + errorMessage);
     } finally {
         hideLoading();
     }
 }
 
-// --- Lógica del Mapa ---
+async function saveLocation() {
+    showLoading();
+    const newPosition = marker.getLatLng();
+    const newRadius = document.getElementById('radius').value;
+
+    // ===================================================================
+    // --- CORRECCIÓN CLAVE ---
+    // Este código ahora funcionará porque ya hemos añadido las columnas
+    // 'latitud_empresa', 'longitud_empresa' y 'radio_fichaje_metros'
+    // a la base de datos con el script SQL.
+    // ===================================================================
+    const { error } = await supa
+        .from('empresas')
+        .update({
+            latitud_empresa: newPosition.lat,
+            longitud_empresa: newPosition.lng,
+            radio_fichaje_metros: newRadius
+        })
+        .eq('id', companyData.id);
+
+    if (error) {
+        alert("Error al guardar la ubicación: " + error.message);
+    } else {
+        alert("Ubicación de la empresa guardada correctamente.");
+    }
+    hideLoading();
+}
+
+
+// --- FUNCIONES DEL MAPA (LEAFLET.JS) ---
+
 function initializeMap() {
-    // Si companyData es null, la función no se ejecuta.
-    const lat = companyData.latitud_empresa || 40.416775; // Default a Madrid
+    // Usamos los datos de la empresa que cargamos al inicio. Si no existen,
+    // usamos valores por defecto (ej. el centro de Madrid).
+    const lat = companyData.latitud_empresa || 40.416775;
     const lng = companyData.longitud_empresa || -3.703790;
     const radius = companyData.radio_fichaje_metros || 100;
     document.getElementById('radius').value = radius;
@@ -174,27 +212,6 @@ function updateCircleRadius() {
     }
 }
 
-async function saveLocation() {
-    showLoading();
-    const newPosition = marker.getLatLng();
-    const newRadius = document.getElementById('radius').value;
-
-    const { error } = await supa
-        .from('empresas')
-        .update({
-            latitud_empresa: newPosition.lat,
-            longitud_empresa: newPosition.lng,
-            radio_fichaje_metros: newRadius
-        })
-        .eq('id', companyData.id);
-
-    if (error) {
-        alert("Error al guardar la ubicación: " + error.message);
-    } else {
-        alert("Ubicación de la empresa guardada correctamente.");
-    }
-    hideLoading();
-}
-
-// NOTA: La función checkUserSession ya no es necesaria aquí porque la hemos centralizado en auth.js,
-// que se carga en manager.html. Esto evita duplicar código.
+// NOTA: La función checkUserSession no es necesaria aquí porque ya se carga
+// el archivo auth.js en manager.html, que maneja la sesión globalmente.
+// Esto evita duplicar código.
