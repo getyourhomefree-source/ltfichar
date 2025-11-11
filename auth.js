@@ -1,27 +1,27 @@
-// auth.js (VERSIÓN CORREGIDA DEFINITIVA - SEPARA EL REGISTRO DE LA CREACIÓN DE EMPRESA)
+// auth.js (VERSIÓN CON DEPURACIÓN AVANZADA)
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- COMPROBACIÓN DE SEGURIDAD (Se mantiene) ---
+    // --- COMPROBACIÓN DE SEGURIDAD ---
     if (typeof supa === 'undefined') {
-        console.error("Error Crítico: El cliente de Supabase ('supa') no está definido. Asegúrate de que 'config.js' se carga correctamente.");
+        console.error("Error Crítico: El cliente de Supabase ('supa') no está definido.");
         const errorMessage = document.getElementById('error-message');
         if (errorMessage) errorMessage.textContent = 'Error de configuración. Por favor, contacta con el soporte.';
         return;
     }
 
-    // --- INICIALIZACIÓN (Sin cambios) ---
+    // --- INICIALIZACIÓN ---
     const loadingOverlay = document.getElementById('loading-overlay');
     const errorMessage = document.getElementById('error-message');
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
     const logoutBtn = document.getElementById('logout-btn');
 
-    // --- FUNCIONES DE UTILIDAD (Sin cambios) ---
+    // --- FUNCIONES DE UTILIDAD ---
     function showLoading() { if (loadingOverlay) loadingOverlay.classList.remove('hidden'); }
     function hideLoading() { if (loadingOverlay) loadingOverlay.classList.add('hidden'); }
     function setErrorMessage(message) { if (errorMessage) errorMessage.textContent = message; }
 
-    // --- ASIGNACIÓN DE EVENTOS (Sin cambios) ---
+    // --- ASIGNACIÓN DE EVENTOS ---
     if (loginForm) { loginForm.addEventListener('submit', handleLogin); }
     if (registerForm) { registerForm.addEventListener('submit', handleManagerRegister); }
     if (logoutBtn) { logoutBtn.addEventListener('click', handleLogout); }
@@ -31,21 +31,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function checkUserSession() {
         const { data: { session } } = await supa.auth.getSession();
+        console.log("Chequeando sesión inicial. Sesión encontrada:", session ? session.user.email : 'No');
         const path = window.location.pathname;
-        const isAuthPage = path.includes('index.html') || path.includes('register.html');
+        const isAuthPage = path.includes('index.html') || path.includes('register.html') || path === '/';
 
         if (session) {
-            // Si el usuario tiene sesión y está en una página de login/registro, lo redirigimos.
             if (isAuthPage) {
+                console.log("Usuario con sesión en página de auth. Redirigiendo...");
                 await redirectToDashboard(session.user);
             } else {
-                // Si está en otra página, mostramos su email (si el elemento existe).
                 const userEmailElem = document.getElementById('user-email');
                 if (userEmailElem) userEmailElem.textContent = session.user.email;
             }
         } else {
-            // Si no tiene sesión y NO está en una página de login/registro, lo echamos.
             if (!isAuthPage) {
+                console.log("Usuario sin sesión en página protegida. Redirigiendo a index.html");
                 window.location.replace('index.html');
             }
         }
@@ -57,19 +57,23 @@ document.addEventListener('DOMContentLoaded', () => {
         setErrorMessage('');
         const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
+        console.log(`[DEBUG] Intentando iniciar sesión como ${email}...`);
+
         try {
             const { data, error } = await supa.auth.signInWithPassword({ email, password });
             if (error) throw error;
-            if (data.user) await redirectToDashboard(data.user);
+            
+            console.log("[DEBUG] ¡Autenticación exitosa en Supabase! Usuario:", data.user.email);
+            if (data.user) {
+                await redirectToDashboard(data.user);
+            }
         } catch (error) {
+            console.error("[DEBUG] Error en signInWithPassword:", error);
             setErrorMessage('Email o contraseña incorrectos.');
             hideLoading();
         }
     }
 
-    // ===================================================================
-    // --- FUNCIÓN DE REGISTRO SIMPLIFICADA ---
-    // ===================================================================
     async function handleManagerRegister(e) {
         e.preventDefault();
         setErrorMessage('');
@@ -83,15 +87,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const password = document.getElementById('password').value;
 
         try {
-            // AHORA SOLO HACEMOS EL REGISTRO.
-            // La base de datos creará el perfil automáticamente.
-            // NO intentamos crear la empresa aquí.
             const { data, error } = await supa.auth.signUp({ email, password });
             if (error) throw error;
 
-            // Si el registro tiene éxito, informamos al usuario.
             alert("¡Registro exitoso! Revisa tu correo electrónico para confirmar tu cuenta.");
-            window.location.replace('index.html'); // Lo mandamos al login.
+            window.location.replace('index.html');
 
         } catch (error) {
             setErrorMessage(`Error en el registro: ${error.message}`);
@@ -107,40 +107,57 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ===================================================================
-    // --- FUNCIÓN DE REDIRECCIÓN INTELIGENTE ---
+    // --- FUNCIÓN DE REDIRECCIÓN CON DEPURACIÓN ---
     // ===================================================================
     async function redirectToDashboard(user) {
+        console.log(`[DEBUG] 1. Iniciando redirección para el usuario: ${user.email}`);
         try {
-            // 1. Obtenemos el rol del usuario desde su perfil.
-            const { data: perfil, error: perfilError } = await supa.from('perfiles').select('rol').eq('id', user.id).single();
-            if (perfilError) throw perfilError;
+            // 1. Obtenemos el rol del usuario.
+            const { data: perfil, error: perfilError } = await supa
+                .from('perfiles')
+                .select('rol')
+                .eq('id', user.id)
+                .single();
 
-            // 2. Si es un trabajador, va a la página de fichar.
+            // ¡ESTE ES EL PUNTO MÁS CRÍTICO!
+            if (perfilError) {
+                console.error("[DEBUG] ¡ERROR AL OBTENER EL PERFIL! Razón:", perfilError);
+                throw new Error("No se pudo leer tu perfil de la base de datos. Verifica los permisos RLS.");
+            }
+            
+            console.log(`[DEBUG] 2. Perfil obtenido con éxito. Rol: ${perfil.rol}`);
+
             if (perfil && perfil.rol === 'trabajador') {
+                console.log("[DEBUG] 3. El usuario es un 'trabajador'. Redirigiendo a fichar.html");
                 window.location.replace('fichar.html');
                 return;
             }
 
-            // 3. Si es un manager, comprobamos si ya tiene una empresa.
             if (perfil && perfil.rol === 'manager') {
-                const { data: empresa, error: empresaError } = await supa.from('empresas').select('id').eq('id_manager', user.id).maybeSingle();
+                console.log("[DEBUG] 3. El usuario es un 'manager'. Verificando si tiene una empresa...");
+                const { data: empresa, error: empresaError } = await supa
+                    .from('empresas')
+                    .select('id')
+                    .eq('id_manager', user.id)
+                    .maybeSingle(); // maybeSingle() es mejor que single() si puede no existir.
+
                 if (empresaError) throw empresaError;
 
                 if (empresa) {
-                    // Si tiene empresa, va al dashboard de manager.
+                    console.log(`[DEBUG] 4. El manager ya tiene una empresa (ID: ${empresa.id}). Redirigiendo a manager.html`);
                     window.location.replace('manager.html');
                 } else {
-                    // SI NO TIENE EMPRESA, lo mandamos a una página para que la cree.
-                    // Necesitarás crear esta página: 'crear-empresa.html'
+                    console.log("[DEBUG] 4. El manager NO tiene empresa. Redirigiendo a crear-empresa.html");
                     alert("¡Bienvenido! Como es tu primera vez, vamos a registrar tu empresa.");
                     window.location.replace('crear-empresa.html'); 
                 }
             }
         } catch (error) {
-            console.error("Error al redirigir al usuario:", error);
-            setErrorMessage("No se pudo verificar tu rol. Por favor, intenta iniciar sesión de nuevo.");
-            // Por seguridad, si algo falla, lo deslogueamos.
-            await handleLogout();
+            console.error("[DEBUG] ERROR CRÍTICO DENTRO DE redirectToDashboard:", error.message);
+            setErrorMessage("No se pudo verificar tu rol. Contacta con soporte.");
+            // Forzamos el logout para evitar un bucle infinito.
+            await supa.auth.signOut();
+            hideLoading(); // Ocultamos el overlay de carga si todo falla.
         }
     }
 });
