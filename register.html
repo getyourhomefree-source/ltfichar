@@ -3,52 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro de Empresa - LTFichaje</title>
+    <title>DIAGNÓSTICO DE CONEXIÓN - LTFichaje</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div id="loading-overlay" class="hidden">
-        <div class="spinner"></div>
-    </div>
     <div class="auth-container">
         <div class="auth-card">
-            <h2>Registra tu Empresa</h2>
-            <p class="subtitle">Crea una cuenta de manager para empezar</p>
+            <h2>Página de Diagnóstico</h2>
+            <p>Sigue las instrucciones de las ventanas emergentes (alerts).</p>
+            <p>Si la prueba tiene éxito, el botón de abajo registrará un usuario de prueba.</p>
             
             <form id="register-form" novalidate>
-                <div class="form-group">
-                    <label for="company-name">Nombre de la Empresa</label>
-                    <input type="text" id="company-name" required>
-                </div>
-                <div class="form-group">
-                    <label for="email">Tu Correo (serás el manager)</label>
-                    <input type="email" id="email" required autocomplete="email">
-                </div>
-                <div class="form-group">
-                    <label for="password">Contraseña</label>
-                    <input type="password" id="password" required autocomplete="new-password">
-                </div>
-                <div class="form-group-checkbox">
-                    <input type="checkbox" id="privacy-policy" required>
-                    <label for="privacy-policy">He leído y acepto la <a href="#" target="_blank">Política de Privacidad</a></label>
-                </div>
-                
-                <button type="submit" class="btn">Crear Cuenta</button>
-
-                <p id="error-message" class="error-text"></p>
+                <button type="submit" class="btn">Iniciar Prueba de Registro</button>
             </form>
-            
-            <div class="auth-switch">
-                <p>¿Ya tienes una cuenta? <a href="index.html">Inicia sesión</a></p>
-            </div>
         </div>
     </div>
 
-    <!-- El orden de los scripts es CRÍTICO -->
+    <!-- ****************************************************** -->
+    <!--           PASO 1: CARGAR LA LIBRERÍA SUPABASE          -->
+    <!-- ****************************************************** -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="config.js"></script>
-    <script src="auth.js"></script>
+    
+    <!-- ****************************************************** -->
+    <!--            PASO 2: SCRIPT DE DIAGNÓSTICO             -->
+    <!-- ****************************************************** -->
+    <script>
+        // Esta variable la usaremos para guardar la conexión
+        let supa;
+
+        // --- DIAGNÓSTICO DE CARGA ---
+        alert("DIAGNÓSTICO: La página HTML y este script se han cargado.");
+
+        if (window.supabase) {
+            alert("✅ ¡ÉXITO! La librería de Supabase (desde la URL de internet) se ha cargado correctamente.");
+        } else {
+            alert("❌ ¡FALLO CRÍTICO! La librería de Supabase NO se ha cargado. Revisa la URL del script o posibles bloqueadores en tu navegador.");
+        }
+
+        // --- DIAGNÓSTICO DE CONEXIÓN ---
+        try {
+            // **IMPORTANTE: PON AQUÍ TUS CREDENCIALES REALES**
+            const SUPABASE_URL = 'https://TU_URL_DE_SUPABASE.supabase.co';
+            const SUPABASE_ANON_KEY = 'TU_CLAVE_ANON_PUBLICA';
+
+            supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            
+            if (supa) {
+                alert("✅ ¡ÉXITO! La conexión con tu proyecto de Supabase se ha creado correctamente (la variable 'supa' existe).");
+            } else {
+                throw new Error("La función createClient no devolvió un cliente válido.");
+            }
+
+        } catch (error) {
+            alert(`❌ ¡FALLO CRÍTICO! No se pudo crear la conexión con Supabase. Error: ${error.message}`);
+        }
+
+        // --- DIAGNÓSTICO DE REGISTRO ---
+        const registerForm = document.getElementById('register-form');
+        if (registerForm) {
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                alert("Iniciando prueba de registro...");
+                
+                if (!supa) {
+                    alert("No se puede registrar porque la conexión 'supa' no existe.");
+                    return;
+                }
+
+                try {
+                    // Usamos un email y contraseña de prueba aleatorios
+                    const email = `testuser_${Date.now()}@test.com`;
+                    const password = 'password123';
+
+                    const { data, error } = await supa.auth.signUp({ email, password });
+                    if (error) throw error;
+                    
+                    alert(`✅ ¡REGISTRO EXITOSO! Se ha creado el usuario: ${data.user.email}. Revisa tu panel de Supabase en Authentication > Users.`);
+
+                } catch (error) {
+                    alert(`❌ FALLO EN EL REGISTRO: ${error.message}`);
+                }
+            });
+        }
+
+    </script>
 
 </body>
 </html>
