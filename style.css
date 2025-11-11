@@ -291,4 +291,23 @@ thead th {
     .navbar { padding: 0 1rem; }
     .auth-card { padding: 1.5rem; }
     .map-controls { flex-direction: column; align-items: stretch; }
+}/* style.css */
+/* ... (al final de tu fichero) ... */
+
+.form-group-checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    text-align: left;
+    font-size: 0.9rem;
+}
+.form-group-checkbox input {
+    width: auto;
+}
+.form-group-checkbox a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 600;
 }

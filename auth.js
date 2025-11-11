@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (loginForm) loginForm.addEventListener('submit', handleLogin);
 
     const registerForm = document.getElementById('register-form');
-    if (registerForm) registerForm.addEventListener('submit', handleRegister);
+    if (registerForm) registerForm.addEventListener('submit', handleManagerRegister);
 
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- Funciones Principales ---
 async function checkUserSession() {
     const { data: { session } } = await supabase.auth.getSession();
-    const isAuthPage = window.location.pathname.endsWith('index.html') || window.location.pathname.endsWith('register.html') || window.location.pathname === '/';
+    const isAuthPage = window.location.pathname.includes('index.html') || window.location.pathname.includes('register.html') || window.location.pathname.endsWith('/');
 
     if (session) {
         if (isAuthPage) {
@@ -49,50 +49,73 @@ async function handleLogin(e) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-        errorMessage.textContent = error.message;
+        errorMessage.textContent = 'Email o contraseña incorrectos.';
+        hideLoading();
     } else if (data.user) {
         await redirectToDashboard(data.user);
     }
-    hideLoading();
 }
 
-async function handleRegister(e) {
+async function handleManagerRegister(e) {
     e.preventDefault();
-    showLoading();
     errorMessage.textContent = '';
+
+    const privacyCheckbox = document.getElementById('privacy-policy');
+    if (!privacyCheckbox.checked) {
+        errorMessage.textContent = 'Debes aceptar la política de privacidad para registrarte.';
+        return;
+    }
+    
+    showLoading();
 
     const companyName = document.getElementById('company-name').value;
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
 
-    // 1. Registrar al usuario en Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
-    if (authError) {
-        errorMessage.textContent = authError.message;
-        hideLoading();
-        return;
-    }
+    try {
+        // 1. Registrar al usuario en Supabase Auth
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    nombre_completo: 'Manager' // Podemos añadir info extra aquí
+                }
+            }
+        });
+        if (authError) throw authError;
+        if (!authData.user) throw new Error("No se pudo crear el usuario.");
 
-    if (authData.user) {
-        // 2. Crear la empresa vinculada a este usuario
+        // 2. Crear su perfil con el rol de 'manager'
+        // Esta operación ahora está permitida por la nueva política de RLS
+        const { error: profileError } = await supabase
+            .from('perfiles')
+            .insert({
+                id: authData.user.id,
+                rol: 'manager',
+                nombre_completo: 'Manager'
+            });
+        if (profileError) throw profileError;
+
+        // 3. Crear la empresa vinculada a este manager
+        // Esta operación también está permitida por la nueva política de RLS
         const { error: companyError } = await supabase
             .from('empresas')
             .insert({
-                id: authData.user.id, // Vinculamos la empresa al ID del manager
+                id_manager: authData.user.id,
                 nombre: companyName,
-                admin_email: email,
-                plan_type: 'Freemium' // Plan por defecto
             });
-        
-        if (companyError) {
-            errorMessage.textContent = "Error al crear la empresa: " + companyError.message;
-        } else {
-            // Todo ha ido bien, redirigimos al panel del manager
-            alert("¡Registro completado! Por favor, revisa tu correo para verificar tu cuenta e inicia sesión.");
-            window.location.href = 'index.html';
-        }
+        if (companyError) throw companyError;
+
+        // 4. Todo ha ido bien, informamos al usuario
+        alert("¡Registro casi completo! Revisa tu correo para activar tu cuenta. El enlace puede tardar unos minutos en llegar.");
+        window.location.href = 'index.html';
+
+    } catch (error) {
+        errorMessage.textContent = "Error en el registro: " + error.message;
+    } finally {
+        hideLoading(); // Se ejecuta siempre, incluso si hay un error
     }
-    hideLoading();
 }
 
 async function handleLogout() {
@@ -102,14 +125,14 @@ async function handleLogout() {
 }
 
 async function redirectToDashboard(user) {
-    // Comprobamos si el usuario es manager de alguna empresa
-    const { data: empresa, error } = await supabase
-        .from('empresas')
-        .select('id')
-        .eq('admin_email', user.email)
+    // Leemos el rol desde nuestra tabla 'perfiles'
+    const { data: perfil, error } = await supabase
+        .from('perfiles')
+        .select('rol')
+        .eq('id', user.id)
         .single();
     
-    if (empresa) {
+    if (perfil && perfil.rol === 'manager') {
         window.location.href = 'manager.html';
     } else {
         window.location.href = 'fichar.html';
