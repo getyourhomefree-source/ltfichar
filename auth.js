@@ -1,6 +1,17 @@
-// auth.js (VERSIÓN FINAL Y CORRECTA - USA LA VARIABLE 'supa')
+// auth.js (VERSIÓN MODIFICADA CON COMPROBACIÓN DE SEGURIDAD)
 
 document.addEventListener('DOMContentLoaded', () => {
+    // --- MODIFICACIÓN CLAVE: COMPROBACIÓN DE SEGURIDAD ---
+    // Verificamos si la variable 'supa' que debería haber creado config.js existe.
+    if (typeof supa === 'undefined') {
+        // Si no existe, detenemos todo y avisamos al desarrollador.
+        console.error("Error Crítico: El cliente de Supabase ('supa') no está definido. Asegúrate de que 'config.js' se carga correctamente ANTES que 'auth.js' y que define la variable 'supa'.");
+        // Opcional: Mostrar un mensaje al usuario.
+        const errorMessage = document.getElementById('error-message');
+        if (errorMessage) errorMessage.textContent = 'Error de configuración. Por favor, contacta con el soporte.';
+        return; // Detenemos la ejecución del resto del script.
+    }
+
     // --- INICIALIZACIÓN ---
     const loadingOverlay = document.getElementById('loading-overlay');
     const errorMessage = document.getElementById('error-message');
