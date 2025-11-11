@@ -8,14 +8,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
-     <div id="loading-overlay" class="hidden">
+    <div id="loading-overlay" class="hidden">
         <div class="spinner"></div>
     </div>
     <div class="auth-container">
         <div class="auth-card">
             <h2>Registra tu Empresa</h2>
             <p class="subtitle">Crea una cuenta de manager para empezar</p>
-            <form id="register-form">
+            
+            <form id="register-form" novalidate>
                 <div class="form-group">
                     <label for="company-name">Nombre de la Empresa</label>
                     <input type="text" id="company-name" required>
@@ -28,17 +29,26 @@
                     <label for="password">Contraseña</label>
                     <input type="password" id="password" required autocomplete="new-password">
                 </div>
+                <div class="form-group-checkbox">
+                    <input type="checkbox" id="privacy-policy" required>
+                    <label for="privacy-policy">He leído y acepto la <a href="#" target="_blank">Política de Privacidad</a></label>
+                </div>
+                
                 <button type="submit" class="btn">Crear Cuenta</button>
+
                 <p id="error-message" class="error-text"></p>
             </form>
+            
             <div class="auth-switch">
                 <p>¿Ya tienes una cuenta? <a href="index.html">Inicia sesión</a></p>
             </div>
         </div>
     </div>
 
+    <!-- El orden de los scripts es CRÍTICO -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
     <script src="auth.js"></script>
+
 </body>
 </html>
