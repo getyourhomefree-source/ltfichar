@@ -67,16 +67,40 @@
                  </form>
                  <div class="table-container">
                      <table>
-                       <thead>
-    <tr>
-        <th>Nombre</th>
-        <th>Email</th>
-        <th>Horas de Jornada</th>
-        <th>Acción</th>
-    </tr>
-</thead>
-<tbody id="manager-table-body"></tbody>
-                    </table>
+    <thead>
+        <tr>
+            <th>Nombre del Empleado</th>
+            <th>Email</th>
+            <th>Horas de Jornada
+    const newHoras = parseFloat(input.value);
+
+    if (isNaN(newHoras) || newHoras <= 0) {
+        alert("Por favor, introduce un valor numérico válido para las horas.");
+        return;
+    }
+
+    button.textContent = 'Guardando...';
+    button.disabled = true;
+
+    try {
+        // La política de UPDATE en 'perfiles' que creamos nos da permiso para hacer esto.
+        const { error } = await supa
+            .from('perfiles')
+            .update({ horas_jornada_diaria: newHoras })
+            .eq('id', employeeId);
+
+        if (error) throw error;
+
+        alert(`Jornada laboral de ${newHoras} horas guardada con éxito.`);
+    
+    } catch (error) {
+        alert(`Error al actualizar la jornada: ${error.message}`);
+    } finally {
+        button.textContent = 'Guardar';
+        button.disabled = false;
+    }
+}
+    </table>
                 </div>
             </div>
         </main>
@@ -94,5 +118,6 @@
 </body>
 
 </html>
+
 
 
