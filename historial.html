@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fichar - LTFichaje</title>
+    <title>Historial Completo - LTFichaje</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,24 +15,34 @@
                 <button id="logout-btn" class="btn btn-secondary">Salir</button>
             </div>
         </nav>
-        <aside class="sidebar">
-            <a href="fichar.html" class="active">Fichar</a>
-            <a href="historial.html">Mi Historial</a>
-        </aside>
         <main class="content">
             <div class="card">
-                <h2>Registro de Jornada</h2>
-                <p id="status-message">Consultando tu estado actual...</p>
-                <div id="fichar-controls">
-                    <button id="fichar-btn" class="btn btn-large" disabled>Cargando...</button>
+                <h2>Mi Historial de Fichajes Completo</h2>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Entrada</th>
+                                <th>Salida</th>
+                                <th>Total Horas</th>
+                                <th>Horas Extra</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historial-completo-table-body">
+                            <!-- Aquí se cargarán todos los registros con JavaScript -->
+                        </tbody>
+                    </table>
                 </div>
-                <p id="location-message" class="info-text"></p>
             </div>
         </main>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
-    <script src="main.js"></script>
+    <!-- Ahora carga el gestor de autenticación correcto -->
+    <script src="auth.js"></script>
+    <!-- Deberías crear un 'historial.js' para cargar los datos de esta tabla -->
+    <!-- <script src="historial.js"></script> -->
 </body>
 </html>
