@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fichar - LTFichaje</title>
+    <title>Panel de Gerente - LTFichaje</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 </head>
 <body>
     <div id="loading-overlay">
@@ -14,40 +15,44 @@
     </div>
     <div class="app-container">
         <nav class="navbar">
-            <span class="brand">LTFichaje</span>
+            <span class="brand">LTFichaje (Manager)</span>
             <div>
                 <span id="user-email"></span>
                 <button id="logout-btn" class="btn btn-secondary"><i class="fa-solid fa-right-from-bracket"></i></button>
             </div>
         </nav>
         <main class="content">
-            <div class="card fichar-card">
-                <div class="fichar-header">
-                    <h2 id="current-time">--:--:--</h2>
-                    <p id="current-date">Cargando fecha...</p>
+            <div class="card">
+                <h2><i class="fa-solid fa-map-location-dot"></i> Zona de Fichaje</h2>
+                <p class="info-text">Arrastra el marcador para establecer la ubicación de la empresa. Los empleados solo podrán fichar dentro del círculo azul.</p>
+                <div id="map"></div>
+                <div class="map-controls">
+                    <div class="form-group">
+                        <label for="radius">Radio de fichaje (en metros)</label>
+                        <input type="number" id="radius" value="100" min="10">
+                    </div>
+                    <button id="save-location-btn" class="btn">Guardar Ubicación</button>
                 </div>
-                <div class="fichar-status">
-                     <p id="geofence-status"><i class="fa-solid fa-location-crosshairs"></i> Verificando ubicación...</p>
-                </div>
-                <button id="fichar-btn" class="btn btn-large" disabled>
-                    <i class="fa-solid fa-fingerprint"></i> Espera...
-                </button>
-                <p id="status-message" class="info-text">Consultando tu estado actual...</p>
             </div>
 
             <div class="card">
-                <h2><i class="fa-solid fa-history"></i> Mi Historial Reciente</h2>
-                <div class="table-container">
-                    <table>
+                 <h2><i class="fa-solid fa-users"></i> Gestión de Empleados</h2>
+                 <form id="invite-form" class="invite-form">
+                     <input type="email" id="invite-email" placeholder="email@ejemplo.com" required>
+                     <button type="submit" class="btn">Invitar Empleado</button>
+                 </form>
+                 <div class="table-container">
+                     <table>
                         <thead>
                             <tr>
-                                <th>Fecha</th>
-                                <th>Entrada</th>
-                                <th>Salida</th>
-                                <th>Total</th>
+                                <!-- FIX: La cabecera de la tabla está completa y correcta -->
+                                <th>Nombre</th>
+                                <th>Email</th>
+                                <th>Horas de Jornada</th>
+                                <th>Acción</th>
                             </tr>
                         </thead>
-                        <tbody id="historial-table-body"></tbody>
+                        <tbody id="manager-table-body"></tbody>
                     </table>
                 </div>
             </div>
@@ -55,10 +60,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="config.js"></script>
-    <!-- 1. Carga auth.js PRIMERO para que gestione la sesión y el logout -->
-    <script src="auth.js"></script> 
-    <!-- 2. Carga employee.js DESPUÉS, que ahora solo se centra en la lógica de fichaje -->
-    <script src="employee.js"></script>
+    <script src="auth.js"></script>
+    <script src="manager.js"></script>
 </body>
 </html>
