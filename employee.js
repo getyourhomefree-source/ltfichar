@@ -164,22 +164,56 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function loadHistorialReciente() {
-        const { data: { user } } = await supa.auth.getUser();
-        const { data: fichajes } = await supa.from('fichajes').select('*').eq('id_usuario', user.id).order('fecha', { ascending: false }).limit(5);
-        
-        const tableBody = document.getElementById('historial-table-body');
-        tableBody.innerHTML = '';
-        if (!fichajes || fichajes.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="4">No hay registros todavía.</td></tr>`;
-            return;
-        }
-        fichajes.forEach(f => {
-            const totalHoras = f.hora_salida ? ((new Date(`1970-01-01T${f.hora_salida}`) - new Date(`1970-01-01T${f.hora_entrada}`)) / 36e5) : 0;
-            tableBody.innerHTML += `<tr><td>${f.fecha}</td><td>${f.hora_entrada}</td><td>${f.hora_salida || '---'}</td><td>${totalHoras > 0 ? totalHoras.toFixed(2) + 'h' : 'En curso'}</td></tr>`;
-        });
+async function loadHistorialReciente() {
+    const { data: { user } } = await supa.auth.getUser();
+    if (!user) return;
+
+    // 1. Obtenemos las horas de jornada del perfil del usuario
+    const { data: perfil } = await supa.from('perfiles').select('horas_jornada_diaria').eq('id', user.id).single();
+    const horasJornada = perfil?.horas_jornada_diaria || 8; // Default de 8 horas si no está definido
+
+    // 2. Obtenemos los últimos 5 fichajes
+    const { data: fichajes } = await supa
+        .from('fichajes')
+        .select('fecha, hora_entrada, hora_salida')
+        .eq('id_usuario', user.id)
+        .order('fecha', { ascending: false })
+        .limit(5);
+
+    const tableBody = document.getElementById('historial-table-body');
+    tableBody.innerHTML = '';
+    if (!fichajes || fichajes.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="5">No hay registros todavía.</td></tr>`;
+        return;
     }
 
-    // --- Iniciar la ejecución de la página ---
-    initializePage();
-});
+    // 3. Actualizamos la cabecera de la tabla en el HTML
+    document.querySelector('#historial-table-body').parentElement.querySelector('thead tr').innerHTML = `
+        <th>Fecha</th>
+        <th>Entrada</th>
+        <th>Salida</th>
+        <th>Total Horas</th>
+        <th>Horas Extra</th>
+    `;
+
+    fichajes.forEach(f => {
+        let totalHoras = 0;
+        let horasExtra = 0;
+        if (f.hora_salida) {
+            totalHoras = ((new Date(`1970-01-01T${f.hora_salida}`) - new Date(`1970-01-01T${f.hora_entrada}`)) / 36e5);
+            horasExtra = Math.max(0, totalHoras - horasJornada);
+        }
+
+        const row = `
+            <tr>
+                <td>${f.fecha}</td>
+                <td>${f.hora_entrada}</td>
+                <td>${f.hora_salida || '---'}</td>
+                <td>${totalHoras > 0 ? totalHoras.toFixed(2) + 'h' : 'En curso'}</td>
+                <td style="font-weight: bold; color: ${horasExtra > 0 ? 'var(--success-color)' : 'inherit'};">
+                    ${horasExtra > 0 ? horasExtra.toFixed(2) + 'h' : '---'}
+                </td>
+            </tr>
+        `;
+        tableBody.innerHTML += row;
+    });
