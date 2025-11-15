@@ -1,7 +1,7 @@
-// employee.js (VERSIÓN FINAL, ROBUSTA Y CORREGIDA)
+// employee.js (VERSIÓN FINAL, ROBUSTA Y CORREGIDA CON 'supa')
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- ELEMENTOS DEL DOM ---
+    // ... (declaraciones de elementos del DOM sin cambios)
     const loadingOverlay = document.getElementById('loading-overlay');
     const statusMessage = document.getElementById('status-message');
     const geofenceStatusEl = document.getElementById('geofence-status');
@@ -10,33 +10,43 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentDateEl = document.getElementById('current-date');
     const historialTableBody = document.getElementById('historial-table-body');
 
-    // Variables de estado de la página
-    let geofenceData = null; // { lat, lng, radius }
-    let userPosition = null; // { lat, lng }
+    let geofenceData = null;
+    let userPosition = null;
 
-    // --- FUNCIÓN DE ARRANQUE DE LA PÁGINA ---
     async function initializePage() {
         try {
-            // auth.js ya ha verificado la sesión, así que podemos proceder.
             updateTime();
             setInterval(updateTime, 1000);
-
             await initializeFichajeLogic();
             await loadHistorialReciente();
-            
             ficharBtn.addEventListener('click', handleFichar);
-
         } catch (error) {
             console.error("Error al inicializar la página de fichaje:", error);
             statusMessage.textContent = `Error crítico: ${error.message}`;
-            statusMessage.style.color = 'var(--error-color)';
-            ficharBtn.disabled = true;
-            ficharBtn.innerHTML = `<i class="fa-solid fa-ban"></i> No disponible`;
         } finally {
             loadingOverlay.classList.add('hidden');
         }
     }
 
+    // ... (resto de funciones con 'supabase' reemplazado por 'supa')
+
+    async function fetchGeofenceData() {
+        const { data: { user } } = await supa.auth.getUser(); // CORREGIDO
+        if (!user) return;
+
+        const { data: perfil } = await supa.from('perfiles').select('id_empresa').eq('id', user.id).single(); // CORREGIDO
+        if (!perfil || !perfil.id_empresa) {
+            geofenceStatusEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> No estás asignado a una empresa. Contacta a tu manager.`;
+            return;
+        }
+
+        const { data: empresa } = await supa.from('empresas').select('latitud_empresa, longitud_empresa, radio_fichaje_metros').eq('id', perfil.id_empresa).single(); // CORREGIDO
+        if (empresa && empresa.latitud_empresa) {
+            geofenceData = { lat: empresa.latitud_empresa, lng: empresa.longitud_empresa, radius: empresa.radio_fichaje_metros };
+        }
+    }
+    
+    // ... (watchUserPosition, checkGeofence, calculateDistance no cambian)
     function updateTime() {
         const now = new Date();
         currentTimeEl.textContent = now.toLocaleTimeString('es-ES');
@@ -48,26 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
         watchUserPosition();
         await loadFicharStatus();
     }
-
-    // --- LÓGICA DE GEOLOCALIZACIÓN ---
-
-    async function fetchGeofenceData() {
-        // CORRECCIÓN: Usamos 'supabase' en lugar de 'supa'.
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data: perfil } = await supabase.from('perfiles').select('id_empresa').eq('id', user.id).single();
-        if (!perfil || !perfil.id_empresa) {
-            geofenceStatusEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> No estás asignado a una empresa. Contacta a tu manager.`;
-            return;
-        }
-
-        const { data: empresa } = await supabase.from('empresas').select('latitud_empresa, longitud_empresa, radio_fichaje_metros').eq('id', perfil.id_empresa).single();
-        if (empresa && empresa.latitud_empresa) {
-            geofenceData = { lat: empresa.latitud_empresa, lng: empresa.longitud_empresa, radius: empresa.radio_fichaje_metros };
-        }
-    }
-
     function watchUserPosition() {
         if (!navigator.geolocation) {
             geofenceStatusEl.innerHTML = `<i class="fa-solid fa-ban"></i> Tu navegador no soporta geolocalización.`;
@@ -115,14 +105,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
-
-    // --- INTERACCIÓN CON SUPABASE (FICHAJES E HISTORIAL) ---
+    // ...
 
     async function loadFicharStatus() {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user } } = await supa.auth.getUser(); // CORREGIDO
         if (!user) return;
         
-        const { data: ultimoFichaje } = await supabase.from('fichajes').select('id, hora_entrada').eq('id_usuario', user.id).is('hora_salida', null).maybeSingle();
+        const { data: ultimoFichaje } = await supa.from('fichajes').select('id, hora_entrada').eq('id_usuario', user.id).is('hora_salida', null).maybeSingle(); // CORREGIDO
         
         if (ultimoFichaje) {
             statusMessage.textContent = `Entrada registrada a las ${ultimoFichaje.hora_entrada}.`;
@@ -145,28 +134,15 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        const { data: { user } } = await supabase.auth.getUser();
-        const now = new Date();
-        const fecha = now.toISOString().split('T')[0]; // YYYY-MM-DD
-        const hora = now.toTimeString().split(' ')[0]; // HH:MM:SS
+        const { data: { user } } = await supa.auth.getUser(); // CORREGIDO
+        const now = new Date(), fecha = now.toISOString().split('T')[0], hora = now.toTimeString().split(' ')[0];
         
         try {
             if (ficharBtn.dataset.fichajeId) {
-                // MEJORA: Ahora también guardamos la ubicación de salida.
-                const { error } = await supabase.from('fichajes').update({ 
-                    hora_salida: hora,
-                    ubicacion_salida_lat: userPosition.lat,
-                    ubicacion_salida_lng: userPosition.lng
-                }).eq('id', ficharBtn.dataset.fichajeId);
+                const { error } = await supa.from('fichajes').update({ hora_salida: hora, ubicacion_salida_lat: userPosition.lat, ubicacion_salida_lng: userPosition.lng }).eq('id', ficharBtn.dataset.fichajeId); // CORREGIDO
                 if (error) throw error;
             } else {
-                const { error } = await supabase.from('fichajes').insert({ 
-                    id_usuario: user.id, 
-                    fecha, 
-                    hora_entrada: hora, 
-                    ubicacion_entrada_lat: userPosition.lat, 
-                    ubicacion_entrada_lng: userPosition.lng 
-                });
+                const { error } = await supa.from('fichajes').insert({ id_usuario: user.id, fecha, hora_entrada: hora, ubicacion_entrada_lat: userPosition.lat, ubicacion_entrada_lng: userPosition.lng }); // CORREGIDO
                 if (error) throw error;
             }
         } catch (error) {
@@ -179,14 +155,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadHistorialReciente() {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        // MEJORA: Obtenemos las horas de jornada del perfil para calcular las horas extra.
-        const { data: perfil } = await supabase.from('perfiles').select('horas_jornada_diaria').eq('id', user.id).single();
-        // Si el perfil no tiene horas definidas, usamos 8 como valor por defecto.
+        const { data: { user } } = await supa.auth.getUser(); // CORREGIDO
+        const { data: perfil } = await supa.from('perfiles').select('horas_jornada_diaria').eq('id', user.id).single(); // CORREGIDO
         const horasJornada = perfil?.horas_jornada_diaria || 8;
-
-        const { data: fichajes } = await supabase.from('fichajes').select('*').eq('id_usuario', user.id).order('fecha', { ascending: false }).limit(5);
+        const { data: fichajes } = await supa.from('fichajes').select('*').eq('id_usuario', user.id).order('fecha', { ascending: false }).limit(5); // CORREGIDO
         
         historialTableBody.innerHTML = '';
         if (!fichajes || fichajes.length === 0) {
@@ -199,24 +171,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (f.hora_salida) {
                 const entrada = new Date(`1970-01-01T${f.hora_entrada}Z`);
                 const salida = new Date(`1970-01-01T${f.hora_salida}Z`);
-                totalHoras = (salida - entrada) / 36e5; // Diferencia en horas
+                totalHoras = (salida - entrada) / 36e5;
                 horasExtra = Math.max(0, totalHoras - horasJornada);
             }
-
-            historialTableBody.innerHTML += `
-                <tr>
-                    <td>${f.fecha}</td>
-                    <td>${f.hora_entrada}</td>
-                    <td>${f.hora_salida || '---'}</td>
-                    <td>${totalHoras > 0 ? totalHoras.toFixed(2) + 'h' : 'En curso'}</td>
-                    <td style="font-weight: bold; color: ${horasExtra > 0 ? 'var(--success-color)' : 'inherit'};">
-                        ${totalHoras > 0 && horasExtra > 0 ? horasExtra.toFixed(2) + 'h' : '---'}
-                    </td>
-                </tr>
-            `;
+            historialTableBody.innerHTML += `<tr><td>${f.fecha}</td><td>${f.hora_entrada}</td><td>${f.hora_salida || '---'}</td><td>${totalHoras > 0 ? totalHoras.toFixed(2) + 'h' : 'En curso'}</td><td style="font-weight: bold; color: ${horasExtra > 0 ? 'var(--success-color)' : 'inherit'};">${totalHoras > 0 && horasExtra > 0 ? horasExtra.toFixed(2) + 'h' : '---'}</td></tr>`;
         });
     }
 
-    // --- Iniciar la ejecución de la página ---
     initializePage();
 });
