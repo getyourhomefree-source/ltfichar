@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (error) throw error;
             } else {
                 const { error } = await supa.from('fichajes').insert({ 
-                    id_usuario: user.id, 
+                    id_empleado: user.id, 
                     fecha: timestampCompleto.split('T')[0],
                     hora_entrada: timestampCompleto, 
                     ubicacion_entrada_lat: userPosition.lat, 
@@ -203,3 +203,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initializePage();
 });
+
