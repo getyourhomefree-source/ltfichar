@@ -3,10 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Historial Completo - LTFichaje</title>
+    <title>Mi Historial - LTFichaje</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
 </head>
 <body>
+    <div id="loading-overlay" class="hidden">
+        <div class="spinner"></div>
+    </div>
     <div class="app-container">
         <nav class="navbar">
             <span class="brand">LTFichaje</span>
@@ -17,7 +22,25 @@
         </nav>
         <main class="content">
             <div class="card">
-                <h2>Mi Historial de Fichajes Completo</h2>
+                <h2><i class="fa-solid fa-calendar-days"></i> Mi Historial de Fichajes</h2>
+                
+                <!-- FORMULARIO DE FILTRO Y DESCARGA -->
+                <div class="report-form">
+                    <div class="form-group">
+                        <label for="start-date">Desde:</label>
+                        <input type="date" id="start-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="end-date">Hasta:</label>
+                        <input type="date" id="end-date" required>
+                    </div>
+                    <button id="filter-btn" class="btn"><i class="fa-solid fa-filter"></i> Filtrar</button>
+                    <div class="report-buttons">
+                        <button id="export-csv-btn" class="btn btn-secondary" disabled><i class="fa-solid fa-file-csv"></i> CSV</button>
+                        <button id="export-pdf-btn" class="btn btn-secondary" disabled><i class="fa-solid fa-file-pdf"></i> PDF</button>
+                    </div>
+                </div>
+
                 <div class="table-container">
                     <table>
                         <thead>
@@ -30,7 +53,7 @@
                             </tr>
                         </thead>
                         <tbody id="historial-completo-table-body">
-                            <!-- Aquí se cargarán todos los registros con JavaScript -->
+                            <!-- Los datos se cargarán aquí con JavaScript -->
                         </tbody>
                     </table>
                 </div>
@@ -38,11 +61,15 @@
         </main>
     </div>
 
+    <!-- LIBRERÍAS PARA REPORTES (MUY IMPORTANTE) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+
+    <!-- SCRIPTS DE LA APLICACIÓN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js"></script>
-    <!-- Ahora carga el gestor de autenticación correcto -->
     <script src="auth.js"></script>
-    <!-- Deberías crear un 'historial.js' para cargar los datos de esta tabla -->
-    <!-- <script src="historial.js"></script> -->
+    <script src="historial.js"></script> <!-- Usaremos un nuevo script dedicado -->
 </body>
 </html>
