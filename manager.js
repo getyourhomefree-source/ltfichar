@@ -1,217 +1,186 @@
-// manager.js (VERSIÓN CORREGIDA Y COMPLETA)
-
-const loadingOverlay = document.getElementById('loading-overlay');
-let map, marker, circle;
-let companyData = {}; // Usaremos esta variable global para almacenar los datos de la empresa.
-
-// --- INICIALIZACIÓN AL CARGAR LA PÁGINA ---
 document.addEventListener('DOMContentLoaded', async () => {
-    // Primero, cargamos los datos de la empresa del manager logueado.
-    companyData = await loadCompanyData();
+    // --- ELEMENTOS DEL DOM ---
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const inviteForm = document.getElementById('invite-form');
+    const saveLocationBtn = document.getElementById('save-location-btn');
+    const radiusInput = document.getElementById('radius');
 
-    // Si la carga de datos fue exitosa (es decir, el manager tiene una empresa registrada),
-    // entonces procedemos a cargar el resto de la página.
-    if (companyData) {
-        await loadEmployees();
-        initializeMap();
-        
-        // Asignamos los eventos a los botones y formularios
-        document.getElementById('invite-form').addEventListener('submit', handleInvite);
-        document.getElementById('save-location-btn').addEventListener('click', saveLocation);
-        document.getElementById('radius').addEventListener('input', updateCircleRadius);
-    }
+    // --- VARIABLES GLOBALES ---
+    let map, marker, circle;
+    let companyData = {}; // Almacenará los datos de la empresa del manager
 
-    // Ocultamos el overlay de carga al final de todo el proceso.
-    hideLoading();
-});
+    // --- FUNCIÓN DE ARRANQUE ---
+    async function initializeManagerPage() {
+        try {
+            // auth.js ya se encarga de la sesión. Si llegamos aquí, es un manager válido.
+            companyData = await loadCompanyData();
+            if (!companyData) return; // Si no hay empresa, la función anterior ya redirige.
 
-// --- FUNCIONES DE UTILIDAD ---
-function showLoading() { if (loadingOverlay) loadingOverlay.classList.remove('hidden'); }
-function hideLoading() { if (loadingOverlay) loadingOverlay.classList.add('hidden'); }
+            await loadEmployees();
+            initializeMap();
 
+            // Asignación de eventos
+            inviteForm.addEventListener('submit', handleInvite);
+            saveLocationBtn.addEventListener('click', saveLocation);
+            radiusInput.addEventListener('input', updateCircleRadius);
 
-// --- CARGA DE DATOS PRINCIPALES ---
-
-async function loadCompanyData() {
-    showLoading();
-    const { data: { user } } = await supa.auth.getUser();
-    if (!user) {
-        window.location.replace('index.html');
-        return null;
-    }
-
-    // Buscamos la empresa usando el ID del manager (user.id), que es la forma correcta y segura.
-    const { data: empresa, error } = await supa
-        .from('empresas')
-        .select('*')
-        .eq('id_manager', user.id)
-        .single();
-        
-    if (error) {
-        // Si el error es 'PGRST116', significa "no se encontró la fila", lo cual es normal
-        // para un manager nuevo. Lo redirigimos a la página de creación de empresa.
-        if (error.code === 'PGRST116') {
-            console.log("Manager sin empresa detectado. Redirigiendo...");
-            window.location.replace('crear-empresa.html');
-        } else {
-            console.error("Error cargando datos de la empresa:", error);
-            alert('Hubo un problema al cargar los datos de tu empresa.');
+        } catch (error) {
+            console.error("Error crítico al inicializar el panel de manager:", error);
+            alert("No se pudo cargar el panel de manager. " + error.message);
+        } finally {
+            loadingOverlay.classList.add('hidden');
         }
-        return null; // Devolvemos null para detener la ejecución.
-    }
-    
-    return empresa;
-}
-
-async function loadEmployees() {
-    if (!companyData || !companyData.id) return;
-
-    // Consultamos la tabla 'empleados' y hacemos un "JOIN" para obtener
-    // la información del perfil del empleado (nombre y rol).
-    const { data: empleados, error } = await supa
-        .from('empleados')
-        .select(`
-            id_usuario,
-            perfiles (
-                nombre_completo,
-                rol
-            )
-        `)
-        .eq('id_empresa', companyData.id);
-
-    if (error) {
-        console.error("Error cargando empleados:", error);
-        return;
     }
 
-    const tableBody = document.getElementById('manager-table-body');
-    tableBody.innerHTML = '';
-    if (!empleados || empleados.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="3">No hay empleados invitados todavía.</td></tr>`;
-        return;
-    }
-    
-    // NOTA: El HTML estático pide "Nombre", "Email", "Activo".
-    // Nuestro SQL nos da "nombre_completo" y "rol". Adaptamos la tabla a los datos que tenemos.
-    // Para obtener el email, se requeriría una función RPC más compleja.
-    empleados.forEach(emp => {
-        tableBody.innerHTML += `
-            <tr>
-                <td>${emp.perfiles.nombre_completo || 'Pendiente de registro'}</td>
-                <td>(Email no disponible en esta vista)</td>
-                <td>${emp.perfiles.rol || 'N/A'}</td>
-            </tr>
-        `;
-    });
-}
+    // --- CARGA DE DATOS ---
+    async function loadCompanyData() {
+        const { data: { user } } = await supa.auth.getUser();
+        const { data: empresa, error } = await supa.from('empresas').select('*').eq('id_manager', user.id).single();
 
-
-// --- LÓGICA DE GESTIÓN (INVITACIONES Y MAPA) ---
-
-async function handleInvite(e) {
-    e.preventDefault();
-    showLoading();
-    const email = document.getElementById('invite-email').value;
-
-    if (!companyData || !companyData.id) {
-        alert("Error: No se ha podido identificar la empresa. Recarga la página.");
-        hideLoading();
-        return;
+        if (error) {
+            if (error.code === 'PGRST116') { // No se encontró la empresa
+                window.location.replace('crear-empresa.html');
+            } else {
+                throw error; // Lanza cualquier otro error
+            }
+            return null;
+        }
+        return empresa;
     }
 
-    try {
-        // ===================================================================
-        // --- CORRECCIÓN CLAVE ---
-        // Llamamos a la Edge Function 'invite-user' que creamos en Supabase.
-        // Esta es la forma segura de realizar acciones de administrador.
-        // ===================================================================
-        const { data, error } = await supa.functions.invoke('invite-user', {
-            body: { 
-                email_a_invitar: email, 
-                id_de_la_empresa: companyData.id 
-            },
+    // --- CORRECCIÓN CLAVE: Cargar empleados desde la tabla 'perfiles' ---
+    async function loadEmployees() {
+        if (!companyData.id) return;
+
+        // Consultamos 'perfiles' para encontrar a todos los usuarios (rol 'trabajador')
+        // que pertenecen a esta empresa.
+        const { data: empleados, error } = await supa
+            .from('perfiles')
+            .select('id, email_usuario, nombre_completo, horas_jornada_diaria')
+            .eq('id_empresa', companyData.id)
+            .eq('rol', 'trabajador');
+
+        if (error) {
+            console.error("Error cargando empleados:", error);
+            return;
+        }
+
+        const tableBody = document.getElementById('manager-table-body');
+        tableBody.innerHTML = '';
+        if (!empleados || empleados.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="4">No has invitado a ningún empleado todavía.</td></tr>`;
+            return;
+        }
+
+        empleados.forEach(emp => {
+            const row = `
+                <tr>
+                    <td>${emp.nombre_completo || 'Pendiente de Registro'}</td>
+                    <td>${emp.email_usuario}</td>
+                    <td>
+                        <input type="number" class="horas-input" value="${emp.horas_jornada_diaria || 8}" min="1" max="12" step="0.5" data-user-id="${emp.id}">
+                    </td>
+                    <td>
+                        <button class="btn btn-secondary btn-save-horas" data-user-id="${emp.id}">Guardar</button>
+                    </td>
+                </tr>
+            `;
+            tableBody.innerHTML += row;
         });
 
-        if (error) throw error;
-        
-        // Mostramos el mensaje de éxito que nos devuelve nuestra función.
-        alert(data.message);
-        document.getElementById('invite-email').value = '';
-        
-    } catch (error) {
-        // Si la función devuelve un error (ej. permisos denegados), lo mostramos.
-        const errorMessage = error.context?.body?.error || error.message;
-        alert("Error al invitar: " + errorMessage);
-    } finally {
-        hideLoading();
+        // Añadimos eventos a los botones de "Guardar" recién creados
+        document.querySelectorAll('.btn-save-horas').forEach(button => {
+            button.addEventListener('click', handleSaveHoras);
+        });
     }
-}
 
-async function saveLocation() {
-    showLoading();
-    const newPosition = marker.getLatLng();
-    const newRadius = document.getElementById('radius').value;
+    // --- LÓGICA DE GESTIÓN (INVITACIONES, MAPA, HORAS) ---
 
-    // ===================================================================
-    // --- CORRECCIÓN CLAVE ---
-    // Este código ahora funcionará porque ya hemos añadido las columnas
-    // 'latitud_empresa', 'longitud_empresa' y 'radio_fichaje_metros'
-    // a la base de datos con el script SQL.
-    // ===================================================================
-    const { error } = await supa
-        .from('empresas')
-        .update({
+    async function handleInvite(e) {
+        e.preventDefault();
+        loadingOverlay.classList.remove('hidden');
+        const emailInput = document.getElementById('invite-email');
+        const email = emailInput.value;
+
+        try {
+            const { data, error } = await supa.functions.invoke('invite-user', {
+                body: { email_a_invitar: email, id_de_la_empresa: companyData.id },
+            });
+            if (error) throw error;
+            alert(data.message);
+            emailInput.value = '';
+            await loadEmployees(); // Recargar la lista de empleados para ver al nuevo invitado
+        } catch (error) {
+            const errorMessage = error.context?.body?.error || error.message;
+            alert("Error al invitar: " + errorMessage);
+        } finally {
+            loadingOverlay.classList.add('hidden');
+        }
+    }
+    
+    // --- NUEVA FUNCIÓN: Guardar las horas de jornada ---
+    async function handleSaveHoras(event) {
+        const userId = event.target.dataset.userId;
+        const horasInput = document.querySelector(`.horas-input[data-user-id="${userId}"]`);
+        const horas = horasInput.value;
+
+        if (!horas || horas <= 0) {
+            alert("El número de horas debe ser mayor que cero.");
+            return;
+        }
+
+        loadingOverlay.classList.remove('hidden');
+        const { error } = await supa
+            .from('perfiles')
+            .update({ horas_jornada_diaria: horas })
+            .eq('id', userId);
+            
+        if (error) {
+            alert("Error al guardar las horas: " + error.message);
+        } else {
+            alert("Horas de jornada actualizadas correctamente.");
+            event.target.style.backgroundColor = 'var(--success-color)'; // Feedback visual
+            setTimeout(() => { event.target.style.backgroundColor = ''; }, 2000);
+        }
+        loadingOverlay.classList.add('hidden');
+    }
+
+    async function saveLocation() {
+        // ... (el resto de funciones de mapa y demás se mantienen igual)
+        loadingOverlay.classList.remove('hidden');
+        const newPosition = marker.getLatLng();
+        const newRadius = document.getElementById('radius').value;
+        const { error } = await supa.from('empresas').update({
             latitud_empresa: newPosition.lat,
             longitud_empresa: newPosition.lng,
             radio_fichaje_metros: newRadius
-        })
-        .eq('id', companyData.id);
+        }).eq('id', companyData.id);
 
-    if (error) {
-        alert("Error al guardar la ubicación: " + error.message);
-    } else {
-        alert("Ubicación de la empresa guardada correctamente.");
+        if (error) alert("Error al guardar la ubicación: " + error.message);
+        else alert("Ubicación de la empresa guardada correctamente.");
+        loadingOverlay.classList.add('hidden');
     }
-    hideLoading();
-}
 
+    function initializeMap() {
+        const lat = companyData.latitud_empresa || 40.416775;
+        const lng = companyData.longitud_empresa || -3.703790;
+        const radius = companyData.radio_fichaje_metros || 100;
+        document.getElementById('radius').value = radius;
 
-// --- FUNCIONES DEL MAPA (LEAFLET.JS) ---
+        map = L.map('map').setView([lat, lng], 16);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-function initializeMap() {
-    // Usamos los datos de la empresa que cargamos al inicio. Si no existen,
-    // usamos valores por defecto (ej. el centro de Madrid).
-    const lat = companyData.latitud_empresa || 40.416775;
-    const lng = companyData.longitud_empresa || -3.703790;
-    const radius = companyData.radio_fichaje_metros || 100;
-    document.getElementById('radius').value = radius;
+        marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+        circle = L.circle([lat, lng], { radius, color: 'blue', fillColor: '#30f', fillOpacity: 0.2 }).addTo(map);
 
-    map = L.map('map').setView([lat, lng], 16);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
-
-    marker = L.marker([lat, lng], { draggable: true }).addTo(map);
-    circle = L.circle([lat, lng], {
-        color: 'blue',
-        fillColor: '#30f',
-        fillOpacity: 0.2,
-        radius: radius
-    }).addTo(map);
-
-    marker.on('dragend', (event) => {
-        const position = marker.getLatLng();
-        circle.setLatLng(position);
-    });
-}
-
-function updateCircleRadius() {
-    const newRadius = document.getElementById('radius').value;
-    if (newRadius > 0) {
-        circle.setRadius(newRadius);
+        marker.on('dragend', () => circle.setLatLng(marker.getLatLng()));
     }
-}
 
-// NOTA: La función checkUserSession no es necesaria aquí porque ya se carga
-// el archivo auth.js en manager.html, que maneja la sesión globalmente.
-// Esto evita duplicar código.
+    function updateCircleRadius() {
+        const newRadius = document.getElementById('radius').value;
+        if (newRadius > 0) circle.setRadius(newRadius);
+    }
+    
+    // --- Iniciar la página ---
+    initializeManagerPage();
+});
