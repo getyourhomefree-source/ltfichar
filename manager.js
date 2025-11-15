@@ -212,6 +212,119 @@ function updateCircleRadius() {
     }
 }
 
-// NOTA: La función checkUserSession no es necesaria aquí porque ya se carga
-// el archivo auth.js en manager.html, que maneja la sesión globalmente.
-// Esto evita duplicar código.
+// Pega este código al final de tu archivo manager.js
+
+// --- LÓGICA DE REPORTES ---
+
+document.addEventListener('DOMContentLoaded', () => {
+    // ... tu código existente de inicialización ...
+
+    // Añadir event listeners para los nuevos botones
+    const exportCsvBtn = document.getElementById('export-csv-btn');
+    if (exportCsvBtn) exportCsvBtn.addEventListener('click', exportToCSV);
+
+    const exportPdfBtn = document.getElementById('export-pdf-btn');
+    if (exportPdfBtn) exportPdfBtn.addEventListener('click', exportToPDF);
+});
+
+async function fetchReportData() {
+    const startDate = document.getElementById('start-date').value;
+    const endDate = document.getElementById('end-date').value;
+
+    if (!startDate || !endDate) {
+        alert("Por favor, selecciona una fecha de inicio y de fin.");
+        return null;
+    }
+
+    // Obtenemos la empresa del manager actual
+    const { data: { user } } = await supa.auth.getUser();
+    const { data: empresa, error: empresaError } = await supa.from('empresas').select('id').eq('id_manager', user.id).single();
+    if (empresaError || !empresa) {
+        alert("No se pudo encontrar tu empresa.");
+        return null;
+    }
+
+    // ¡LA MAGIA DEL JOIN! Usamos una RPC para obtener los fichajes de la empresa.
+    // Esto es mucho más eficiente que traer todos los fichajes y filtrarlos en el cliente.
+    const { data, error } = await supa.rpc('get_fichajes_por_empresa', {
+        id_empresa_param: empresa.id,
+        fecha_inicio_param: startDate,
+        fecha_fin_param: endDate
+    });
+
+    if (error) {
+        alert("Error al obtener los datos del informe: " + error.message);
+        return null;
+    }
+    return data;
+}
+
+async function exportToCSV() {
+    const data = await fetchReportData();
+    if (!data || data.length === 0) {
+        alert("No hay datos para exportar en el rango de fechas seleccionado.");
+        return;
+    }
+
+    // Transformamos los datos para que sean más legibles en el CSV
+    const csvData = data.map(row => {
+        const entrada = new Date(row.hora_entrada);
+        const salida = row.hora_salida ? new Date(row.hora_salida) : null;
+        let totalHoras = 0;
+        if (salida) {
+            totalHoras = ((salida - entrada) / 3600000).toFixed(2);
+        }
+        return {
+            Email: row.email_empleado,
+            Fecha: entrada.toLocaleDateString('es-ES'),
+            Hora_Entrada: entrada.toLocaleTimeString('es-ES'),
+            Hora_Salida: salida ? salida.toLocaleTimeString('es-ES') : 'N/A',
+            Total_Horas: totalHoras
+        };
+    });
+
+    const csv = Papa.unparse(csvData);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", `reporte_fichajes_${startDate}_a_${endDate}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+async function exportToPDF() {
+    const data = await fetchReportData();
+    if (!data || data.length === 0) {
+        alert("No hay datos para exportar en el rango de fechas seleccionado.");
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    doc.text(`Reporte de Fichajes - ${startDate} a ${endDate}`, 14, 16);
+    
+    const tableColumn = ["Email", "Fecha", "Entrada", "Salida", "Total Horas"];
+    const tableRows = [];
+
+    data.forEach(item => {
+        const entrada = new Date(item.hora_entrada);
+        const salida = item.hora_salida ? new Date(item.hora_salida) : null;
+        let totalHoras = 0;
+        if (salida) {
+            totalHoras = ((salida - entrada) / 3600000).toFixed(2);
+        }
+        const rowData = [
+            item.email_empleado,
+            entrada.toLocaleDateString('es-ES'),
+            entrada.toLocaleTimeString('es-ES'),
+            salida ? salida.toLocaleTimeString('es-ES') : 'N/A',
+            totalHoras
+        ];
+        tableRows.push(rowData);
+    });
+
+    doc.autoTable(tableColumn, tableRows, { startY: 20 });
+    doc.save(`reporte_fichajes_${startDate}_a_${endDate}.pdf`);
+}
