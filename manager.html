@@ -36,6 +36,27 @@
                     <button id="save-location-btn" class="btn">Guardar Ubicación</button>
                 </div>
             </div>
+            <div class="card">
+                <h2><i class="fa-solid fa-file-invoice"></i> Generar Reportes</h2>
+                <p class="info-text">Selecciona un rango de fechas para generar un reporte de fichajes de todos los empleados de tu empresa.</p>
+                <div class="report-form">
+                    <div class="form-group">
+                        <label for="start-date">Fecha de Inicio</label>
+                        <input type="date" id="start-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="end-date">Fecha de Fin</label>
+                        <input type="date" id="end-date" required>
+                    </div>
+                    <div class="report-buttons">
+                        <button id="export-csv-btn" class="btn"><i class="fa-solid fa-file-csv"></i> Exportar a CSV</button>
+                        <button id="export-pdf-btn" class="btn"><i class="fa-solid fa-file-pdf"></i> Exportar a PDF</button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
 
             <!-- Gestión de Empleados -->
             <div class="card">
@@ -70,3 +91,4 @@
 </body>
 
 </html>
+
